@@ -28,9 +28,9 @@ public:
     // reads input from the child process until either the match string is reached or a timeout occurs
     bool read_until(std::string &data_read, std::string match, std::chrono::milliseconds timeout);
     
-    // writes the input to the child process
-    // adds newline charecter
-    bool write_line(const std::string input);
+    // writes the input to the child process (adds newline charecter)
+    // returns true if successful
+    bool write_line(std::string line);
 
 private:
     std::string path;

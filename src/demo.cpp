@@ -83,7 +83,10 @@ int main()
     GraphicalBoard board(sf::Vector2f(0, 0));
 
     // initialize engine
-    UCIEngine engine(source_directory / "engines/stockfish", source_directory / "log.txt");
+    UCIEngine engine(source_directory.string() + "/uci_engine/engines/stockfish17", source_directory.string() + "/uci_engine/engines/log.txt");
+    if (!engine.start()) {
+        throw new std::runtime_error("Unable to start engine process!");
+    }
     engine.uci_init();
 
     // used to handle mouse events    

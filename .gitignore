@@ -93,3 +93,6 @@ bin/
 
 # Ignore the chess datasets
 *.binpack
+
+# Ignore the engine executable files
+engines/

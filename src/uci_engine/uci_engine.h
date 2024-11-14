@@ -8,6 +8,7 @@
 #include "../standard_definitions.h"
 #include "../board/board.h"
 #include "../game/game.h"
+#include "process_handler.h"
 
 struct UCIEngine;
 struct UCIOption;
@@ -18,8 +19,13 @@ struct UCIOption;
 */
 struct UCIEngine
 {
-    // Initializes engine process
-    UCIEngine(std::filesystem::path engine_path, std::filesystem::path log_file_path);
+    // initializes engine process
+    UCIEngine(std::string engine_path, std::string log_file_path);
+
+    // starts the child process running the engine
+    // opens log file
+    // returns true is successful
+    bool start();
 
     // begins UCI communication with "uci" command
     // returns false if engine does not respond
@@ -48,17 +54,10 @@ struct UCIEngine
     // Not implemented stop ponderhit
 
     // terminates the engine using the "quit" command
-    void quit();
+    void close();
     
     // returns true if the child process is currenty running
     bool is_running();
-
-    // terminate the child process
-    void terminate_child();
-
-    // writes the input to the child process
-    // adds newline charecter
-    bool write_line(std::string line);
 
     // name of the engine
     std::string name;
@@ -67,20 +66,16 @@ struct UCIEngine
     // list of options for engine
     std::vector<UCIOption> options;
 
+    std::string engine_path;
+    std::string log_path;
+
     ~UCIEngine();
 private:
-    // reads input from the child process until either the match string is reached or a timeout occurs
-    bool read_until(std::string &data_read, std::string match, std::chrono::milliseconds timeout);
-
     // Function to clean whitespace from a string
     static std::vector<std::string> parse_words(std::string &string);
 
-    // file descriptor for write end of parent to child pipe
-    int fd_write_to_engine;
-    // file descriptor for read end of child to parent pipe
-    int fd_read_from_engine;
-    // stream for receiving output from engine
-    pid_t pid;
+    // Child process where the engine will be run
+    ProcessHandler child_process;
 
     // flag for if the uci has been initialized
     bool uci_active;

@@ -23,20 +23,17 @@ target_sources(demo PRIVATE
     src/movegen/movegen.cpp
     src/game/game.cpp
     src/graphical_board/graphical_board.cpp
-    #src/uci_engine/uci_engine.cpp
+    src/uci_engine/process_handler.cpp
+    src/uci_engine/uci_engine.cpp
 )
 
 # Find and link SFML libraries
+set(BUILD_SHARED_LIBS OFF)
 set(SFML_DIR "C:/SFML-2.6.2/lib/cmake/SFML")
-set(SFML_STATIC_LIBRARIES TRUE)  # Use static libraries if you have them
-find_package(SFML 2.6.2 COMPONENTS graphics window system REQUIRED)
+find_package(SFML 2.5 COMPONENTS graphics window system REQUIRED)
 
 # Link libraries for 'demo' target
-if (CMAKE_BUILD_TYPE MATCHES Debug)
-    target_link_libraries(demo PRIVATE sfml-graphics-d sfml-window-d sfml-system-d)
-else()
-    target_link_libraries(demo PRIVATE sfml-graphics sfml-window sfml-system)
-endif()
+target_link_libraries(demo PRIVATE sfml-graphics sfml-window sfml-system)
 
 # Compiler flags (similar to BASE_CFLAGS, DEBUG_CFLAGS, and RELEASE_CFLAGS in Makefile)
 if (MSVC)
