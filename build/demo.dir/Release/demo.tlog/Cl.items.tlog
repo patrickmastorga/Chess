@@ -1,0 +1,5 @@
+C:\Users\patri\Documents\GitHub\chess2024\src\demo.cpp;C:\Users\patri\Documents\GitHub\chess2024\build\demo.dir\Release\demo.obj
+C:\Users\patri\Documents\GitHub\chess2024\src\board\board.cpp;C:\Users\patri\Documents\GitHub\chess2024\build\demo.dir\Release\board.obj
+C:\Users\patri\Documents\GitHub\chess2024\src\movegen\movegen.cpp;C:\Users\patri\Documents\GitHub\chess2024\build\demo.dir\Release\movegen.obj
+C:\Users\patri\Documents\GitHub\chess2024\src\game\game.cpp;C:\Users\patri\Documents\GitHub\chess2024\build\demo.dir\Release\game.obj
+C:\Users\patri\Documents\GitHub\chess2024\src\graphical_board\graphical_board.cpp;C:\Users\patri\Documents\GitHub\chess2024\build\demo.dir\Release\graphical_board.obj
