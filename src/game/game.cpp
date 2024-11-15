@@ -2,6 +2,9 @@
 
 #include <sstream>
 #include <chrono>
+#ifdef _WIN32
+    #include <ctime>
+#endif
 #include <iomanip>
 
 #include "../movegen/movegen.h"
@@ -183,10 +186,20 @@ std::string Game::as_pgn(std::map<std::string, std::string> headers)
         auto now = std::chrono::system_clock::now();
         std::time_t time = std::chrono::system_clock::to_time_t(now);
         // Convert to a tm structure
-        std::tm* tm = std::localtime(&time);
+        std::tm tm;
+#ifdef _WIN32
+        // Use localtime_s on Windows (thread-safe version)
+        localtime_s(&tm, &time);
+#else
+        // Use localtime on other platforms (not thread-safe)
+        std::tm* tmptr = std::localtime(&time);
+        if (tmptr) {
+            tm = *tmptr;  // Copy the contents to tm
+        }
+#endif
         // Format date as "YYYY.MM.DD"
         std::ostringstream oss;
-        oss << std::put_time(tm, "%Y.%m.%d");
+        oss << std::put_time(&tm, "%Y.%m.%d");
 
         pgn += "[Date \"" + oss.str() + "\"]\n";
     }
