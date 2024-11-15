@@ -40,11 +40,15 @@ private:
     int fd_write_to_child;
     // file descriptor for read end of child to parent pipe
     int fd_read_from_child;
-    // stream for receiving output from engine
+    // process id for child process
     pid_t pid;
 #endif
 #ifdef _WIN32
-    HANDLE child_stdin_write, child_stdout_read;
-    PROCESS_INFORMATION proc_info;
+    // handle object for write end of parent to child pipe
+    HANDLE h_write_to_child;
+    // handle object for read end of child to parent pipe
+    HANDLE h_read_from_child;
+    // process information about child process
+    PROCESS_INFORMATION child_process_info;
 #endif
 };

@@ -81,14 +81,14 @@ int main()
 
     // create board
     GraphicalBoard board(sf::Vector2f(0, 0));
-/*
+
     // initialize engine
-    UCIEngine engine(source_directory.string() + "/uci_engine/engines/stockfish17", source_directory.string() + "/uci_engine/engines/log.txt");
+    UCIEngine engine(source_directory.string() + "/uci_engine/engines/stockfish17.exe", source_directory.string() + "/uci_engine/engines/log.txt");
     if (!engine.start()) {
         throw new std::runtime_error("Unable to start engine process!");
     }
     engine.uci_init();
-*/
+
     // used to handle mouse events    
     bool mouse_pressed_last_frame = false;
 
@@ -122,7 +122,7 @@ int main()
         window.setView(game_view);
         window.draw(board);
 
-//*        if (board.white_on_bottom == board.white_to_move()) {
+        if (board.white_on_bottom == board.white_to_move()) {
             // human turn
             // get the mouse position in world coordinates
             sf::Vector2f mouse_position = window.mapPixelToCoords(sf::Mouse::getPosition(window));
@@ -150,7 +150,7 @@ int main()
 
                 mouse_pressed_last_frame = false;
             }
-/*        
+   
         } else if (!board.get_legal_moves().empty()) {
             // computer turn
             if (!computer_move_in_progress) {
@@ -169,7 +169,7 @@ int main()
                 }
             }
         }
-*/
+
         window.display();
     }
     return 0;

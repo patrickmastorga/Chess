@@ -23,8 +23,8 @@ target_sources(demo PRIVATE
     src/movegen/movegen.cpp
     src/game/game.cpp
     src/graphical_board/graphical_board.cpp
-    #src/uci_engine/process_handler.cpp
-    #src/uci_engine/uci_engine.cpp
+    src/uci_engine/process_handler.cpp
+    src/uci_engine/uci_engine.cpp
 )
 
 # Find and link SFML libraries
