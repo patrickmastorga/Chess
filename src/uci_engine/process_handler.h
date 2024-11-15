@@ -37,9 +37,9 @@ private:
 
 #ifdef __unix__
     // file descriptor for write end of parent to child pipe
-    int fd_write_to_engine;
+    int fd_write_to_child;
     // file descriptor for read end of child to parent pipe
-    int fd_read_from_engine;
+    int fd_read_from_child;
     // stream for receiving output from engine
     pid_t pid;
 #endif

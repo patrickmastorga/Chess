@@ -51,8 +51,8 @@ bool ProcessHandler::create_child()
         close(child_to_parent[1]);
 
         // save neccesary read/write ends
-        fd_write_to_engine = parent_to_child[1];
-        fd_read_from_engine = child_to_parent[0];
+        fd_write_to_child = parent_to_child[1];
+        fd_read_from_child = child_to_parent[0];
     }
     return true;
 }
@@ -66,8 +66,8 @@ bool ProcessHandler::is_running()
 
 void ProcessHandler::terminate()
 {
-    close(fd_read_from_engine);
-    close(fd_write_to_engine);
+    close(fd_read_from_child);
+    close(fd_write_to_child);
     if (is_running()) {
         // send termination signal to the child
         kill(pid, SIGTERM);
@@ -100,17 +100,17 @@ bool ProcessHandler::read_until(std::string &data_read, std::string match, std::
         // set up file descriptor set
         fd_set read_fds;
         FD_ZERO(&read_fds);
-        FD_SET(fd_read_from_engine, &read_fds);
+        FD_SET(fd_read_from_child, &read_fds);
 
         // wait for data to become available
-        int result = select(fd_read_from_engine + 1, &read_fds, NULL, NULL, &timeout);
+        int result = select(fd_read_from_child + 1, &read_fds, NULL, NULL, &timeout);
         if (result <= 0) {
             // timout occurred or error
             return false;
         }
 
         // read available data
-        ssize_t bytes_read = read(fd_read_from_engine, buffer, sizeof(buffer) - 1);
+        ssize_t bytes_read = read(fd_read_from_child, buffer, sizeof(buffer) - 1);
         if (bytes_read <= 0) {
             // no more bytes to be read or error
             return false;
@@ -132,7 +132,7 @@ bool ProcessHandler::read_until(std::string &data_read, std::string match, std::
 bool ProcessHandler::write_line(std::string line)
 {
     line += '\n';
-    return write(fd_write_to_engine, line.c_str(), line.size()) != -1;
+    return write(fd_write_to_child, line.c_str(), line.size()) != -1;
 }
 #endif
 #ifdef _WIN32
