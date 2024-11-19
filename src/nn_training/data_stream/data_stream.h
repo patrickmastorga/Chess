@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../board/board.h"
-#include "../../standard_definitions.h"
+#include "../../types.h"
 
 #include <filesystem>
 #include <vector>
@@ -77,12 +77,12 @@ private:
     // updates the current entry based on the next move/score in the movetext
     void read_movetext_entry();
 
-    // reads the next 4 bit block size variable length encoding number from buffer
-    uint16 read_vle_int();
-
     // reads the variable length encoded move from buffer
     // https://github.com/Sopel97/chess_pos_db/blob/master/docs/bcgn/variable_length.md
     Move read_vle_move();
+
+    // reads the next 4 bit block size variable length encoding number from buffer
+    uint16 read_vle_int();
 
     // gets the next bits in the buffer 
     uint8 read_bits(size_t num_bits);

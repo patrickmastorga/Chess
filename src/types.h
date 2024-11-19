@@ -8,5 +8,3 @@ typedef std::uint_fast32_t uint32;
 typedef std::int_fast32_t int32;
 typedef std::uint_fast64_t uint64;
 typedef std::int_fast64_t int64;
-
-#define MAX_DEPTH 32

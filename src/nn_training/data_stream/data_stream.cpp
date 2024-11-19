@@ -343,31 +343,11 @@ bool BinpackTrainingDataStream::read_stem()
 void BinpackTrainingDataStream::read_movetext_entry()
 {
     // input move on position
-    //if (block_num == 215 && entry_num > 85097480) {
-    //    std::string fen = entry.position.as_fen();
-    //    std::cout << fen << " move " << entry.move.as_long_algebraic() << " score " << entry.score << std::endl;
-    //    int j = 0;
-    //}
     plies_remaining--;
     movegen::make_move(entry.position, entry.move);
     entry.move = read_vle_move();
     entry.score = -entry.score + unsigned_to_signed(read_vle_int());
     entry.result = -entry.result;
-}
-
-uint16 BinpackTrainingDataStream::read_vle_int()
-{
-    uint16 mask = 0b1111;
-    uint16 value = 0;
-    for(size_t offset = 0;; offset += 4)
-    {
-        uint16 block = static_cast<uint16>(read_bits(5));
-        value |= ((block & mask) << offset);
-
-        // continue of extension bit is set 
-        if (!(block >> 4)) break;
-    }
-    return value;
 }
 
 Move BinpackTrainingDataStream::read_vle_move()
@@ -461,6 +441,21 @@ Move BinpackTrainingDataStream::read_vle_move()
         throw new std::runtime_error("Generated move is not legal in the current position!");
     }
     return move;
+}
+
+uint16 BinpackTrainingDataStream::read_vle_int()
+{
+    uint16 mask = 0b1111;
+    uint16 value = 0;
+    for(size_t offset = 0;; offset += 4)
+    {
+        uint16 block = static_cast<uint16>(read_bits(5));
+        value |= ((block & mask) << offset);
+
+        // continue of extension bit is set 
+        if (!(block >> 4)) break;
+    }
+    return value;
 }
 
 uint8 BinpackTrainingDataStream::read_bits(size_t num_bits)

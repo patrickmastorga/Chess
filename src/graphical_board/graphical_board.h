@@ -4,7 +4,7 @@
 #include <vector>
 #include <string>
 
-#include "../standard_definitions.h"
+#include "../types.h"
 #include "../game/game.h"
 
 #define WITHIN_BOARD_BOUNDS(v) ((v.x >= 0) && (v.x < 960.0f) && (v.y >= 0) && (v.y < 960.0f))

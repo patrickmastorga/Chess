@@ -96,3 +96,5 @@ bin/
 
 # Ignore the engine executable files
 engines/
+
+todo.txt

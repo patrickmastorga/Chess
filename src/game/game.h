@@ -4,7 +4,7 @@
 #include <map>
 #include <string>
 
-#include "../standard_definitions.h"
+#include "../types.h"
 #include "../board/board.h"
 
 /*

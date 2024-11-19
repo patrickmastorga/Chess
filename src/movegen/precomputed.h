@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../standard_definitions.h"
+#include "../types.h"
 
 // contains last square (touching the edge) north (+8) of every square [0, 63] -> [a1, h8]
 const int32 N_BOUNDS[64] = {

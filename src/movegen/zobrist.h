@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../standard_definitions.h"
+#include "../types.h"
 
 // table of random 48 bit keys for every color/peice/square combination
 // used for zobrist hashing
