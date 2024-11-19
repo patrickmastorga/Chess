@@ -276,7 +276,7 @@ std::vector<Move> movegen::generate_legal_moves(Board &board) noexcept
     std::vector<Move> legal_moves;
 
     for (uint32 i = 0; i < end; ++i) {
-        if (movegen::is_legal(board, moves[i])) {
+        if (movegen::is_legal(board, moves[i], true)) {
             legal_moves.push_back(moves[i]);
         }
     }
@@ -387,7 +387,7 @@ bool movegen::generate_pseudo_legal_moves(const Board &board, Move *stack, uint3
             uint32 bishop_index = std::countr_zero(not_pinned_bishops); // get index of lsb
             not_pinned_bishops &= not_pinned_bishops - 1; // clear lsb
 
-            uint64 bishop_moves = movegen::get_bishop_attacks(board, bishop_index) & checking_squares;
+            uint64 bishop_moves = movegen::bishop_attacks(board, bishop_index) & checking_squares;
             while (bishop_moves) { // iterate over moves
                 uint32 target = std::countr_zero(bishop_moves); // get index of lsb
                 bishop_moves &= bishop_moves - 1; // clear lsb
@@ -402,7 +402,7 @@ bool movegen::generate_pseudo_legal_moves(const Board &board, Move *stack, uint3
             uint32 rook_index = std::countr_zero(not_pinned_rooks); // get index of lsb
             not_pinned_rooks &= not_pinned_rooks - 1; // clear lsb
 
-            uint64 rook_moves = movegen::get_rook_attacks(board, rook_index) & checking_squares;
+            uint64 rook_moves = movegen::rook_attacks(board, rook_index) & checking_squares;
             while (rook_moves) { // iterate over moves
                 uint32 target = std::countr_zero(rook_moves); // get index of lsb
                 rook_moves &= rook_moves - 1; // clear lsb
@@ -417,7 +417,7 @@ bool movegen::generate_pseudo_legal_moves(const Board &board, Move *stack, uint3
             uint32 queen_index = std::countr_zero(not_pinned_queens); // get index of lsb
             not_pinned_queens &= not_pinned_queens - 1; // clear lsb
 
-            uint64 queen_moves = movegen::get_queen_attacks(board, queen_index) & checking_squares;
+            uint64 queen_moves = movegen::queen_attacks(board, queen_index) & checking_squares;
             while (queen_moves) { // iterate over moves
                 uint32 target = std::countr_zero(queen_moves); // get index of lsb
                 queen_moves &= queen_moves - 1; // clear lsb
@@ -516,7 +516,7 @@ bool movegen::generate_pseudo_legal_moves(const Board &board, Move *stack, uint3
         uint32 legal_flag = ((bishops & -bishops) & pinned_peices) ? 0 : Move::LEGAL_FLAG;
         bishops &= bishops - 1; // clear lsb
 
-        uint64 bishop_moves = movegen::get_bishop_attacks(board, bishop_index) & ~board.peices_of_color[c];
+        uint64 bishop_moves = movegen::bishop_attacks(board, bishop_index) & ~board.peices_of_color[c];
         while (bishop_moves) { // iterate over moves
             uint32 target = std::countr_zero(bishop_moves); // get index of lsb
             bishop_moves &= bishop_moves - 1; // clear lsb
@@ -532,7 +532,7 @@ bool movegen::generate_pseudo_legal_moves(const Board &board, Move *stack, uint3
         uint32 legal_flag = ((rooks & -rooks) & pinned_peices) ? 0 : Move::LEGAL_FLAG;
         rooks &= rooks - 1; // clear lsb
 
-        uint64 rook_moves = movegen::get_rook_attacks(board, rook_index) & ~board.peices_of_color[c];
+        uint64 rook_moves = movegen::rook_attacks(board, rook_index) & ~board.peices_of_color[c];
         while (rook_moves) { // iterate over moves
             uint32 target = std::countr_zero(rook_moves); // get index of lsb
             rook_moves &= rook_moves - 1; // clear lsb
@@ -548,7 +548,7 @@ bool movegen::generate_pseudo_legal_moves(const Board &board, Move *stack, uint3
         uint32 legal_flag = ((queens & -queens) & pinned_peices) ? 0 : Move::LEGAL_FLAG;
         queens &= queens - 1; // clear lsb
 
-        uint64 queen_moves = movegen::get_queen_attacks(board, queen_index) & ~board.peices_of_color[c];
+        uint64 queen_moves = movegen::queen_attacks(board, queen_index) & ~board.peices_of_color[c];
         while (queen_moves) { // iterate over moves
             uint32 target = std::countr_zero(queen_moves); // get index of lsb
             queen_moves &= queen_moves - 1; // clear lsb
@@ -717,9 +717,16 @@ void movegen::calculate_checks_and_pins(const Board &board, uint32 c, uint64 &ch
     }
 }
 
-bool movegen::is_legal(Board &board, Move &move) noexcept
+bool movegen::is_legal(Board &board, Move &move, bool unsafe) noexcept
 {
-    if (move.legal_flag_set()) {
+    if (!unsafe) {
+        if (!is_pseudo_legal(board, move)) {
+            return false;
+        }
+        // unset legal flag
+        move.data &= ~(Move::LEGAL_FLAG << 12);
+
+    } else if (move.legal_flag_set()) {
         return true;
     }
 
@@ -739,6 +746,53 @@ bool movegen::is_legal(Board &board, Move &move) noexcept
     return false;
 }
 
+bool movegen::is_pseudo_legal(Board &board, Move &move) noexcept
+{
+    if (move.moving_peice(board) >> 4 != board.halfmove_number % 2) {
+        // wrong color
+        return false;
+    }
+    uint32 start = move.start_square();
+    uint32 target = move.target_square();
+    uint32 peice_type = move.moving_peice(board) & 0b111;
+    uint32 c = move.moving_peice(board) >> 4;
+
+    // check if a move with a flag set is violating anything
+    switch (move.data & (0b111 << 15)) {
+    case Move::CASTLE_FLAG << 12: {
+        // check is move labeled castling is legal castling move
+        uint32 back_rank = 56 * c;
+        if (peice_type != Board::KING || (start & 0b111000) != back_rank) {
+            return false;
+        }
+
+        if (start + 2 == target) {
+            // kingside castling
+            return board.kingside_castling_rights_not_lost(c) && !(board.all_peices & (0b01100000ULL << back_rank));
+        }
+        if (start == target + 2) {
+            // queenside castling
+            return board.queenside_castling_right_not_lost(c) && !(board.all_peices & (0b00001110ULL << back_rank));
+        }
+        return false;
+    }
+    case Move::PROMOTION_FLAG << 12:
+        if (peice_type != Board::PAWN || target % 56 >= 8) {
+            return false;
+        }
+        break;
+    case Move::EN_PASSANT_FLAG << 12:
+        if (peice_type != Board::PAWN || target != board.eligible_en_pasant_square()) {
+            return false;
+        }
+        break;
+    }
+
+    // general case
+    uint64 psuedo_legal_targets = pseudo_moves(board, start);
+    return psuedo_legal_targets & (1ULL << target);
+}
+
 bool movegen::castling_move_is_legal(const Board &board, Move &move) noexcept
 {
     // Check if anything is attacking squares on king's path
@@ -749,13 +803,13 @@ bool movegen::castling_move_is_legal(const Board &board, Move &move) noexcept
 
     if (start < target) {
         for (int32 s = start + 1; s <= target; s++) {
-            if (get_attackers(board, s, 1 - c)) {
+            if (attackers(board, s, 1 - c)) {
                 return false;
             }
         }
     } else {
         for (int32 s = start - 1; s >= target; s--) {
-            if (get_attackers(board, s, 1 - c)) {
+            if (attackers(board, s, 1 - c)) {
                 return false;
             }
         }
@@ -767,10 +821,61 @@ bool movegen::castling_move_is_legal(const Board &board, Move &move) noexcept
 bool movegen::king_attacked(const Board &board, uint32 c) noexcept
 {
     uint32 king_index = std::countr_zero(board.peices_of_color_and_type[c][Board::KING]);
-    return movegen::get_attackers(board, king_index, 1 - c);
+    return movegen::attackers(board, king_index, 1 - c);
 }
 
-uint64 movegen::get_bishop_attacks(const Board &board, uint32 index) noexcept
+uint64 movegen::pseudo_moves(const Board &board, uint32 index) noexcept
+{
+    uint32 peice_type = board.peices[index] & 0b111;
+    uint32 c = board.peices[index] >> 4;
+    uint64 friendly_peices = board.peices_of_color[c];
+
+    switch (peice_type) {
+    case Board::PAWN:
+        return pawn_pseudo_moves(board, index, c);    
+    case Board::KNIGHT:
+        return knight_attacks(index) & ~friendly_peices;
+    case Board::BISHOP:
+        return bishop_attacks(board, index) & ~friendly_peices;
+    case Board::ROOK:
+        return rook_attacks(board, index) & ~friendly_peices;
+    case Board::QUEEN:
+        return queen_attacks(board, index) & ~friendly_peices;
+    case Board::KING:
+        return king_attacks(index) & ~friendly_peices;
+    default:
+        return 0;
+    }
+}
+
+uint64 movegen::pawn_pseudo_moves(const Board &board, uint32 index, uint32 c) noexcept
+{
+    uint32 ep_square = board.eligible_en_pasant_square();
+    uint64 ep_mask = ep_square ? (1ULL << ep_square) : 0ULL;
+
+    // pawn captures
+    uint64 pseudo_moves = PAWN_ATTACK_MASK[c][index] & (board.peices_of_color[1 - c] | ep_mask);
+
+    // pawn non captures
+    int32 foward = 8 - 16 * c;
+    int32 ahead = static_cast<int32>(index) + foward;
+    if (!board.peices[ahead]) {
+        pseudo_moves |= (1ULL << ahead);
+
+        int32 double_ahead = ahead + foward;
+        if ((index >> 3 == 1 + 5 * c) && !board.peices[double_ahead]) {
+            pseudo_moves |= (1ULL << double_ahead);
+        }
+    }
+    return pseudo_moves;
+}
+
+uint64 movegen::knight_attacks(uint32 index) noexcept
+{
+    return KNIGHT_ATTACK_MASK[index];
+}
+
+uint64 movegen::bishop_attacks(const Board &board, uint32 index) noexcept
 {
     uint64 attacks = 0;
     uint64 blockers;
@@ -799,7 +904,7 @@ uint64 movegen::get_bishop_attacks(const Board &board, uint32 index) noexcept
     return attacks;
 }
 
-uint64 movegen::get_rook_attacks(const Board &board, uint32 index) noexcept
+uint64 movegen::rook_attacks(const Board &board, uint32 index) noexcept
 {
     uint64 attacks = 0;
     uint64 blockers;
@@ -828,12 +933,17 @@ uint64 movegen::get_rook_attacks(const Board &board, uint32 index) noexcept
     return attacks;
 }
 
-uint64 movegen::get_queen_attacks(const Board &board, uint32 index) noexcept
+uint64 movegen::queen_attacks(const Board &board, uint32 index) noexcept
 {
-    return get_bishop_attacks(board, index) | get_rook_attacks(board, index);
+    return bishop_attacks(board, index) | rook_attacks(board, index);
 }
 
-uint64 movegen::get_attackers(const Board &board, uint32 index, uint32 c) noexcept
+uint64 movegen::king_attacks(uint32 index) noexcept
+{
+    return KING_ATTACK_MASK[index];
+}
+
+uint64 movegen::attackers(const Board &board, uint32 index, uint32 c) noexcept
 {
     uint64 attackers = 0;
     
@@ -913,8 +1023,8 @@ bool movegen::make_move(Board &board, Move &move) noexcept
     uint32 start = move.start_square();
     uint32 target = move.target_square();
 
-    uint64 start_mask = 1ULL << start;
-    uint64 target_mask = 1ULL << target;
+    uint64 start_mask = 1ULL << static_cast<uint64>(start);
+    uint64 target_mask = 1ULL << static_cast<uint64>(target);
 
     uint32 moving_peice = board.peices[start];
     uint32 captured_peice = board.peices[target];
@@ -1066,7 +1176,7 @@ bool movegen::make_move(Board &board, Move &move) noexcept
 
             uint32 rook_start;
             uint32 rook_target;
-            uint32 rook_move_mask;
+            uint64 rook_move_mask;
 
             // check if kingside castling or queenside casling
             if (target > start) {
@@ -1099,7 +1209,7 @@ bool movegen::make_move(Board &board, Move &move) noexcept
                     *metadata ^= ZOBRIST_KINGSIDE_CASTLING_KEYS[c];
                 }
             }
-            rook_move_mask = (1ULL << rook_start) | (1ULL << rook_target);
+            rook_move_mask = (1ULL << static_cast<uint64>(rook_start)) | (1ULL << static_cast<uint64>(rook_target));
 
             // Update peices array
             board.peices[start] = 0;

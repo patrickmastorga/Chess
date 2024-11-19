@@ -103,10 +103,10 @@ struct Move {
     uint32 target_square() const noexcept;
 
     // returns the peice and color of the peice that was originally on the start square
-    uint32 moving_peice(Board &board) const noexcept;
+    uint32 moving_peice(const Board &board) const noexcept;
 
     // returns the peice and color of the peice that is being captured (use this before move has been played)
-    uint32 captured_peice(Board &board) const noexcept;
+    uint32 captured_peice(const Board &board) const noexcept;
 
     // ONLY CALL THIS AFTER MOVE HAS BEEN PLAYED returns peice and color of the peice that has been captured by the move
     void store_captured_peice(uint32 peice) noexcept;

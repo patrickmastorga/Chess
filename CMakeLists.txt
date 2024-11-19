@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Add the executables
 add_executable(engine)
 add_executable(demo)
+add_executable(binpack_test)
 
 # Source files for each target
 target_sources(engine PRIVATE
@@ -25,6 +26,13 @@ target_sources(demo PRIVATE
     src/graphical_board/graphical_board.cpp
     src/uci_engine/process_handler.cpp
     src/uci_engine/uci_engine.cpp
+)
+
+target_sources(binpack_test PRIVATE
+    src/nn_training/data_stream/test.cpp
+    src/board/board.cpp
+    src/movegen/movegen.cpp
+    src/nn_training/data_stream/data_stream.cpp
 )
 
 # Find and link SFML libraries

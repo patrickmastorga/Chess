@@ -41,9 +41,12 @@ namespace movegen {
     // pinned_peices <- bitboard of peices pinned to the king (both friendly and enemy)
     void calculate_checks_and_pins(const Board &board, uint32 c, uint64 &checkers, uint64 &checking_squares, uint64 &pinned_peices) noexcept;
 
-    // return true if inputted pseudo legal move is legal in the given board
-    // relies on the legal flag of move (unsafe)
-    bool is_legal(Board &board, Move &move) noexcept;
+    // return true if inputted move is legal in the given board
+    // if unsafe is set to true, relies on the legal flag of move and relies that the move is pseudo legal
+    bool is_legal(Board &board, Move &move, bool unsafe = false) noexcept;
+
+    // return true if inputted move is pseudo legal in the given board
+    bool is_pseudo_legal(Board &board, Move &move) noexcept;
 
     // return true if inputted pseudo legal castling move is legal
     // assumes castling rights are not lost and king is not in check
@@ -53,17 +56,29 @@ namespace movegen {
     // return true if the king belonging to the inputted color is currently being attacked (0 for white and 1 for black)
     bool king_attacked(const Board &board, uint32 c) noexcept;
 
+    // return bitboard of pseudo legal destination squares of peice on given index
+    uint64 pseudo_moves(const Board &board, uint32 index) noexcept;
+
+    // return bitboard of pseudo legal destination squares of pawn on given index (including en_passant)
+    uint64 pawn_pseudo_moves(const Board &board, uint32 index, uint32 c) noexcept;
+
+    // return bitboard of knight attacks from a given index
+    uint64 knight_attacks(uint32 index) noexcept;
+
     // return bitboard of bishop attacks from a given index
-    uint64 get_bishop_attacks(const Board &board, uint32 index) noexcept;
+    uint64 bishop_attacks(const Board &board, uint32 index) noexcept;
 
     // return bitboard of rook attacks from a given index
-    uint64 get_rook_attacks(const Board &board, uint32 index) noexcept;
+    uint64 rook_attacks(const Board &board, uint32 index) noexcept;
 
     // return bitboard of queen attacks from a given index
-    uint64 get_queen_attacks(const Board &board, uint32 index) noexcept;
+    uint64 queen_attacks(const Board &board, uint32 index) noexcept;
+
+    // return bitboard of knight attacks from a given index
+    uint64 king_attacks(uint32 index) noexcept;
 
     // return a bitboard of attackers of a given color (0 for white and 1 for black) on the given square (index [0, 63] -> [a1, h8])
-    uint64 get_attackers(const Board &board, uint32 index, uint32 c) noexcept;
+    uint64 attackers(const Board &board, uint32 index, uint32 c) noexcept;
 
     // update the given board based on the inputted move (must be pseudo legal) (unsafe)
     // returns true if move was legal and process completed

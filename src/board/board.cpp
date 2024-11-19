@@ -150,12 +150,12 @@ uint32 Move::target_square() const noexcept
     return (data >> 6) & 0b111111;
 }
 
-uint32 Move::moving_peice(Board &board) const noexcept
+uint32 Move::moving_peice(const Board &board) const noexcept
 {
     return board.peices[start_square()];
 }
 
-uint32 Move::captured_peice(Board &board) const noexcept
+uint32 Move::captured_peice(const Board &board) const noexcept
 {
     if (is_en_passant()) {
         return board.peices[start_square() + (target_square() - start_square()) % 8];
