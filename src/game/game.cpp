@@ -22,7 +22,7 @@ void Game::initialize_starting_position() noexcept
 void Game::initialize_from_fen(std::string fen)
 {
     // initialize board members
-    movegen::initialize_from_fen(*this, fen);
+    Board::initialize_from_fen(fen);
 
     // reset game members
     game_moves.clear();
@@ -75,7 +75,7 @@ bool Game::input_move(Move move) noexcept
     // castling case
     if (move.is_castling()) {
         game_moves_in_algebraic.push_back((move.target_square() < move.start_square()) ? "O-O-O" : "O-O");
-        movegen::make_move(*this, move);
+        movegen::make_move(*this, move, true);
         generate_legal_moves();
         return true;
     }
@@ -138,7 +138,7 @@ bool Game::input_move(Move move) noexcept
     }
 
     // make move before checking if in check
-    movegen::make_move(*this, move);
+    movegen::make_move(*this, move, true);
     generate_legal_moves();
 
     // add check/mate indicator
@@ -154,7 +154,7 @@ bool Game::input_move(std::string long_algebraic) noexcept
 {
     Move move;
     try {
-        move = board_helpers::long_algebraic_to_move(*this, long_algebraic);
+        move = Move::from_long_algebraic(*this, long_algebraic);
     } catch (std::invalid_argument &e) {
         return false;
     }
@@ -290,7 +290,7 @@ std::string Game::as_pgn(std::map<std::string, std::string> headers)
 void Game::generate_legal_moves() noexcept
 {
     // empty vector if draw
-    if (movegen::is_draw_by_fifty_move_rule(*this) || movegen:: is_draw_by_repitition(*this) || movegen::is_draw_by_insufficient_material(*this)) {
+    if (is_draw_by_fifty_move_rule() || is_draw_by_repitition() || is_draw_by_insufficient_material()) {
         current_legal_moves = std::vector<Move>();
     } else {
         current_legal_moves = movegen::generate_legal_moves(*this);

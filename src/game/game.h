@@ -21,12 +21,12 @@ struct Game : public Board {
 
     // Loads the specified position (as Forsyth Edwards Notation) into the game
     // throws std::invalid_argument if the fen string is not valid (look at wikipedia article for reference)
-    virtual void initialize_from_fen(std::string fen);
+    void initialize_from_fen(std::string fen) override;
 
     // Loads the specified position from the uci position string
     // position [fen <fenstring> | startpos ]  moves <move1> .... <movei>
     // throws std::invalid_argument if the position string is not valid
-    void from_uci_string(std::string uci_string);
+    virtual void from_uci_string(std::string uci_string);
 
     // returns true if it is white's turn
     bool white_to_move() const noexcept;

@@ -49,6 +49,12 @@ void GraphicalBoard::initialize_from_fen(std::string fen)
     Game::initialize_from_fen(fen);
 }
 
+void GraphicalBoard::from_uci_string(std::string uci_string)
+{
+    reset_selection();
+    Game::from_uci_string(uci_string);
+}
+
 bool GraphicalBoard::attempt_selection(sf::Vector2f board_position) noexcept
 {
     reset_selection();

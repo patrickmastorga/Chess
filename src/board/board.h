@@ -5,14 +5,6 @@
 
 #define METADATA_LENGTH 128
 
-/*
-NOTES ABOUT CHESS GAME REPRESENTATION
-
-    - Fifty move rule is treated as an automatic draw
-    - Threefold repitition is treated as an automatic draw
-
-*/
-
 struct Board;
 struct Move;
 
@@ -35,7 +27,7 @@ struct Board {
     static constexpr uint32 KING =    0b110;
 
     // color and peice type at every square (index [0, 63] -> [a1, h8])
-    // ex. white rook at b1 -> peices[2] == Colors::WHITE + Peices::ROOK
+    // ex. white rook at b1 -> peices[2] == Board::WHITE + Board::ROOK
     uint32 peices[64];
 
     // metadata about the current and past positions of the board
@@ -54,6 +46,10 @@ struct Board {
     // bitboard for all peices
     uint64 all_peices;
 
+    // populate all fields to match given position in Forsyth–Edwards Notation (FEN)
+    // throws std::invalid_argument if the fen string is not valid (look at wikipedia article for reference)
+    virtual void initialize_from_fen(std::string fen);
+    
     // returns the position encoded in Forsyth–Edwards Notation (FEN)
     std::string as_fen() const noexcept;
 
@@ -64,13 +60,23 @@ struct Board {
     bool kingside_castling_rights_not_lost(uint32 c) const noexcept;
 
     // return true if the specified color still has queenside castling rights
-    bool queenside_castling_right_not_lost(uint32 c) const noexcept;
+    bool queenside_castling_rights_not_lost(uint32 c) const noexcept;
 
     // returns the number of consecutive half moves played without capturing a peice or moving a pawn
     uint32 halfmoves_since_pawn_move_or_capture() const noexcept;
 
     // returns the square over which a pawn has just passed over in a double jump in the previous move (0 if not any)
-    uint32 eligible_en_pasant_square() const noexcept;
+    uint32 eligible_en_passant_square() const noexcept;
+
+    // returns true if the game is over by threefold repititions
+    // num repitions sets how many repitions are required to return true
+    bool is_draw_by_repitition(uint32 num_repitions=2) noexcept;
+
+    // returns true if the game is over by the fifty move rule
+    bool is_draw_by_fifty_move_rule()  noexcept;
+
+    // returns true if the game is over by insufficient material
+    bool is_draw_by_insufficient_material()  noexcept;
 };
 
 
@@ -132,10 +138,17 @@ struct Move {
     // sets the "guarenteed legal" flag of the move
     void set_legal_flag() noexcept;
 
+    // sets the "guarenteed legal" flag of the move
+    void unset_legal_flag() noexcept;
+
     std::string as_long_algebraic() const;
 
     // override equality operator with other move
     bool operator==(const Move &other) const noexcept;
+
+    // given the long algebraic notation of a move in the current position, returns the properly initialized Move
+    // throw std::invalid_argument if algebraic notation is not valid
+    static Move from_long_algebraic(Board &board, std::string long_algebraic);
 
     // defines a null move
     static const Move NULL_MOVE;
@@ -143,7 +156,6 @@ struct Move {
 
 namespace board_helpers
 {
-    
     // returns index [0, 63] -> [a1, h8] of square on board given algebraic notation for position on chess board (ex e3, a1, c8)
     // throw std::invalid_argument if algebraic notation is not valid
     uint32 algebraic_notation_to_board_index(std::string algebraic);
@@ -151,8 +163,4 @@ namespace board_helpers
     // returns algebraic notation for position on chess board (ex e3, a1, c8) given index [0, 63] -> [a1, h8] of square on board 
     // throw std::invalid_argument if index is out of range
     std::string board_index_to_algebraic_notation(uint32 board_index);
-
-    // given the long algebraic notation of a move in the current position, returns the properly initialized Move
-    // throw std::invalid_argument if algebraic notation is not valid
-    Move long_algebraic_to_move(Board &board, std::string long_algebraic);
 };

@@ -19,11 +19,7 @@ public:
 
     void initialize_from_fen(std::string fen) override;
 
-    // pixel position of top left corner when drawed on render target
-    sf::Vector2f position;
-
-    // true of the white perspective is on the bottom
-    bool white_on_bottom;
+    void from_uci_string(std::string uci_string) override;
 
     // attempts to select the square at the given position
     // returns true is successful
@@ -40,7 +36,7 @@ public:
     // returns true is successful
     bool attempt_move(sf::Vector2f board_position) noexcept;
 
-    // does nothing if no peice is selected peice exists
+    // does nothing if no peice is selected
     // draw a hovering peice mathching the selected peice at the specified position on the sf::RenderTarget
     // simultaneously reduces the opacity of the selected peice
     void draw_hovering_peice(sf::RenderTarget &target, sf::Vector2f mouse_position);
@@ -53,6 +49,12 @@ public:
 
     // transforms square index to position on 960x960 
     sf::Vector2f board_index_to_position(uint32 index) const;
+
+    // pixel position of top left corner when drawed on render target
+    sf::Vector2f position;
+
+    // true of the white perspective is on the bottom
+    bool white_on_bottom;
 
 private:
     // the index of the selected square

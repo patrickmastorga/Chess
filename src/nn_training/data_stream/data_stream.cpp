@@ -8,7 +8,7 @@
 #include <iomanip>
 
 #include "../../movegen/movegen.h"
-#include "../../movegen/zobrist.h"
+#include "../../board/zobrist.h"
 
 #define ENTRY_SKIPPED 32002
 
@@ -327,7 +327,6 @@ bool BinpackTrainingDataStream::read_stem()
 
     // check if move is legal in current position
     if (!movegen::is_legal(entry.position, entry.move)) {
-        std::string fen = entry.position.as_fen();
         throw new std::runtime_error("Read move is not legal in the current position!");
     }
 
@@ -344,7 +343,7 @@ void BinpackTrainingDataStream::read_movetext_entry()
 {
     // input move on position
     plies_remaining--;
-    movegen::make_move(entry.position, entry.move);
+    movegen::make_move(entry.position, entry.move, true);
     entry.move = read_vle_move();
     entry.score = -entry.score + unsigned_to_signed(read_vle_int());
     entry.result = -entry.result;
@@ -379,7 +378,7 @@ Move BinpackTrainingDataStream::read_vle_move()
             break;
         }
         // move is not a promotion
-        uint32 ep_square = entry.position.eligible_en_pasant_square();
+        uint32 ep_square = entry.position.eligible_en_passant_square();
 
         // possible fix to weird quirk
         if (ep_square && (1ULL << ep_square) & possible_destinations) {
@@ -399,7 +398,7 @@ Move BinpackTrainingDataStream::read_vle_move()
     }
     case Board::KING: {
         uint32 c = entry.position.peices[start_square] >> 4;
-        uint32 num_castlings = entry.position.kingside_castling_rights_not_lost(c) + entry.position.queenside_castling_right_not_lost(c);
+        uint32 num_castlings = entry.position.kingside_castling_rights_not_lost(c) + entry.position.queenside_castling_rights_not_lost(c);
         num_moves = std::popcount(possible_destinations);
         move_id = read_bits(std::bit_width(num_moves + num_castlings - 1));
 
@@ -407,7 +406,7 @@ Move BinpackTrainingDataStream::read_vle_move()
             // move is castling
             flags = Move::CASTLE_FLAG;
             move_id -= num_moves;
-            if (move_id || !entry.position.queenside_castling_right_not_lost(c)) {
+            if (move_id || !entry.position.queenside_castling_rights_not_lost(c)) {
                 // short castling
                 target_square = start_square + 2;
             } else {
@@ -437,7 +436,6 @@ Move BinpackTrainingDataStream::read_vle_move()
 
     Move move(start_square, target_square, flags);
     if (!movegen::is_legal(entry.position, move)) {
-        std::string fen = entry.position.as_fen();
         throw new std::runtime_error("Generated move is not legal in the current position!");
     }
     return move;

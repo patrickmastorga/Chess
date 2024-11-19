@@ -25,7 +25,7 @@ void perft::perft_session(std::string fen, uint32 depth)
     std::cout << "Running perft session for src/board/move_gen.cpp:\n - Starting FEN: " << fen << "\n - Starting depth: " << depth << std::endl;
 
     perft::search_active = true;
-    movegen::initialize_from_fen(perft::board, fen);
+    perft::board.initialize_from_fen(fen);
 
     while (depth > 0) {
         
@@ -40,7 +40,7 @@ void perft::perft_session(std::string fen, uint32 depth)
             std::cout << std::setw(4) << i << std::setw(5) << legal_moves[i].as_long_algebraic() << ": ";
             std::cout.flush();
 
-            movegen::make_move(perft::board, legal_moves[i]);
+            movegen::make_move(perft::board, legal_moves[i], true);
             uint64 nodes = perft_h(depth - 1);
             total += nodes;
             std::cout << nodes << std::endl;
@@ -68,7 +68,7 @@ void perft::perft_session(std::string fen, uint32 depth)
             break;
         }
 
-        movegen::make_move(perft::board, legal_moves[input]);
+        movegen::make_move(perft::board, legal_moves[input], true);
         depth--;
     }
     perft::search_active = false;
@@ -79,7 +79,7 @@ uint64 perft::perft(std::string fen, uint32 depth)
     std::cout << "Running perft test for src/board/move_gen.cpp:\n - Starting FEN: " << std::dec << fen << "\n - Depth: " << depth << "\nMoves:" << std::endl;
 
     perft::search_active = true;
-    movegen::initialize_from_fen(perft::board, fen);
+    perft::board.initialize_from_fen(fen);
     std::vector<Move> legal_moves = movegen::generate_legal_moves(board);
 
     uint64 total = 0;
@@ -89,7 +89,7 @@ uint64 perft::perft(std::string fen, uint32 depth)
         std::cout << " - " << move.as_long_algebraic() << ": ";
         std::cout.flush();
 
-        movegen::make_move(perft::board, move);
+        movegen::make_move(perft::board, move, true);
         uint64 nodes = perft_h(depth - 1);
         total += nodes;
         std::cout << nodes << std::endl;
@@ -156,7 +156,7 @@ void perft::perft_accuracy_test()
             std::cout << "depth " << depth << " " << std::setw(86) << fen;
             std::cout.flush();
 
-            movegen::initialize_from_fen(perft::board, fen);
+            perft::board.initialize_from_fen(fen);
             int64 nodes = perft_h(depth);
 
             if (nodes == correct_nodes[depth - 1]) {
@@ -195,7 +195,7 @@ uint64 perft::perft_speed_test() {
     uint32 i = 0;
     while (std::getline(random_fens, fen)) {
         try {
-            movegen::initialize_from_fen(perft::board, fen);
+            perft::board.initialize_from_fen(fen);
         } catch (const std::invalid_argument &e) {
             throw new std::runtime_error(std::string("Problem reading fen from random_positions.txt! FEN: ") + fen + std::string(" ") + e.what());
         }
@@ -239,7 +239,7 @@ uint64 perft::perft_h(uint32 depth)
     uint64 nodes = 0;
 
     for (uint32 i = 0; i < end; i++) {
-        if (movegen::make_move(perft::board, moves[i])) {
+        if (movegen::make_move(perft::board, moves[i], true)) {
             nodes += perft_h(depth - 1);
             movegen::unmake_move(perft::board, moves[i]);
         }
