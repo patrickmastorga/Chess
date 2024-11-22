@@ -7,6 +7,10 @@
 #include <vector>
 #include <fstream>
 
+struct TrainingDataEntry;
+class TrainingDataStream;
+class BinpackTrainingDataStream;
+
 /*
     Contains the data included in every training data entry
 */
@@ -23,9 +27,31 @@ struct TrainingDataEntry
 };
 
 /*
+    Abstract class for getting training data
+*/
+class TrainingDataStream
+{
+public:
+    virtual ~TrainingDataStream() = default;
+
+    // attempts to fetch the next entry in the file
+    // returns a pointer to the next entry
+    // returns nullptr if there is no more data available
+    virtual const TrainingDataEntry* get_next_entry() = 0; 
+
+protected:
+    TrainingDataStream(std::filesystem::path path, float drop, size_t worker_id, size_t num_workers);
+
+    std::filesystem::path path;
+    float drop;
+    size_t worker_id;
+    size_t num_workers;
+};
+
+/*
     Class for streaming training data from a binpack file
 */
-class BinpackTrainingDataStream
+class BinpackTrainingDataStream : public TrainingDataStream
 {
 public:
     // path: reates a stream from the provided .binpack file at provided path
@@ -35,19 +61,19 @@ public:
     BinpackTrainingDataStream(std::filesystem::path path, float drop, size_t worker_id, size_t num_workers, size_t buffer_size=1050000);
     ~BinpackTrainingDataStream();
 
-    // attempts to fetch the next entry in the file
-    // fills the "entry" variable with the next entry
-    // returns false if no more entries are available
-    bool get_next_entry();
+    const TrainingDataEntry* get_next_entry() override;
 
-    // where the current entry is stored (read only)
-    TrainingDataEntry entry;
+    // Scans the binpack file to valiate the block headers
+    bool scan_file();
 
 private:
+    TrainingDataEntry entry;
+
     float drop;
     size_t worker_id;
     size_t num_workers;
     
+    std::filesystem::path path;
     std::ifstream file;
     size_t buffer_size;
     uint8 *buffer;

@@ -1,0 +1,2 @@
+ - optimize pinned peice legality with queen moves mask on king square to restrict sliding peice movement on those squares and answer question (does this guarentee legality?)
+ - optimize pinned peice legality by answering question (can a pinned knight even move at all?)

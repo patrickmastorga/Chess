@@ -97,4 +97,24 @@ bin/
 # Ignore the engine executable files
 engines/
 
-todo.txt
+# ---- Python ----
+# Ignore Python virtual environments
+.venv/
+venv/
+env/
+
+# Ignore Python cache files
+__pycache__/
+*.py[cod]
+
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Ignore mypy type checker cache
+.mypy_cache/
+
+# ---- PyInstaller ----
+# Ignore PyInstaller files
+*.spec
+dist/
+build/

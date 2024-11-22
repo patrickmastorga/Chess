@@ -12,10 +12,14 @@
 
 #define ENTRY_SKIPPED 32002
 
-BinpackTrainingDataStream::BinpackTrainingDataStream(std::filesystem::path path, float drop, size_t worker_id, size_t num_workers, size_t buffer_size) :
+TrainingDataStream::TrainingDataStream(std::filesystem::path path, float drop, size_t worker_id, size_t num_workers) : 
+    path(path),
     drop(drop),
     worker_id(worker_id),
-    num_workers(num_workers),
+    num_workers(num_workers) {}
+
+BinpackTrainingDataStream::BinpackTrainingDataStream(std::filesystem::path path, float drop, size_t worker_id, size_t num_workers, size_t buffer_size) :
+    TrainingDataStream(path, drop, worker_id, num_workers),
     file(path, std::ios::binary),
     buffer_size(buffer_size),
     block_num(0),
@@ -39,7 +43,7 @@ BinpackTrainingDataStream::~BinpackTrainingDataStream()
     delete[] buffer;
 }
 
-bool BinpackTrainingDataStream::get_next_entry()
+const TrainingDataEntry* BinpackTrainingDataStream::get_next_entry()
 {
     do {
         entry_num++;
@@ -49,9 +53,42 @@ bool BinpackTrainingDataStream::get_next_entry()
 
         } else if (!read_stem()) {
             // read next new position
-            return false;
+            return nullptr;
         }
     } while (entry.score == ENTRY_SKIPPED);
+
+    return &entry;
+}
+
+bool BinpackTrainingDataStream::scan_file()
+{
+    std::cout << "Validating " << path << std::endl;
+
+    size_t max_block_size = 0;
+    uint8 header[8];
+
+    while (file.peek() != std::ifstream::traits_type::eof()) {
+
+        try {
+            block_size = read_block_header();
+        } catch (std::runtime_error &e) {
+            std::cout << "PROBLEM: " << e.what() << std::endl;
+            file.seekg(0, std::ios::beg);
+            return false;
+        }
+
+        if (block_size > max_block_size) {
+            max_block_size = block_size;
+        }
+
+        file.seekg(block_size, std::ios::cur);
+    }
+
+    file.seekg(0, std::ios::beg);    
+    if (max_block_size > buffer_size) {
+        std::cout << "PROBLEM: Maximum block size is " << max_block_size << " bytes but only " << buffer_size << " bytes in buffer." << std::endl;
+        return false;
+    }
 
     return true;
 }
@@ -62,13 +99,13 @@ size_t BinpackTrainingDataStream::read_block_header()
 
     // read next block header
     if (!file.read(reinterpret_cast<char*>(header), sizeof(header))) {
-        throw new std::runtime_error("Unexpected end of file");
+        throw new std::runtime_error("Unexpected end of file. Not enough bytes left for a header");
     }
     
     // validate header
     if (header[0] != 'B' || header[1] != 'I' || header[2] != 'N' || header[3] != 'P')
     {
-        throw new std::runtime_error("Invalid binpack file or chunk.");
+        throw new std::runtime_error("Invalid binpack file or chunk. Does not end in BINP");
     }
 
     uint32 next_block_size = 
@@ -82,7 +119,6 @@ size_t BinpackTrainingDataStream::read_block_header()
 bool BinpackTrainingDataStream::advance_blocks(size_t num_blocks)
 {
     block_num += num_blocks;
-    std::cout << "Block num: " << std::right << std::setw(6) << block_num << " Entry num: " << std::setw(16) << entry_num << std::endl;
     // Advance past blocks not belonging to this worker
     for (size_t i = 0; i < num_blocks - 1; i++) {
         if (file.peek() == std::ifstream::traits_type::eof()) {
@@ -367,8 +403,7 @@ Move BinpackTrainingDataStream::read_vle_move()
     // switch on peice type
     switch (peice_type) {
     case Board::PAWN: {
-        constexpr uint64 promoting_squares = (0xFFULL << 56) | 0xFFULL;
-        if (possible_destinations & promoting_squares) {
+        if (possible_destinations & 0xFF000000000000FFULL) {
             // move is a promotion
             num_moves = 4 * std::popcount(possible_destinations);
             move_id = read_bits(std::bit_width(num_moves - 1));
