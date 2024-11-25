@@ -1,6 +1,7 @@
 #include "feature_sets.h"
 
 #include <algorithm>
+#include <stdexcept>
 
 #include "../../types.h"
 
@@ -13,7 +14,7 @@ BasicFeatureSetBatch::~BasicFeatureSetBatch()
 BasicFeatureSetBatch *BasicFeatureSetBatch::get_batch(TrainingDataStream *stream, size_t size)
 {
     if (!stream) {
-        return nullptr;
+        throw new std::runtime_error("Stream is null! Cannot get next batch!");
     }
     
     BasicFeatureSetBatch *batch = new BasicFeatureSetBatch();

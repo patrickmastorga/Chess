@@ -2,62 +2,66 @@ import numpy as np
 import ctypes
 import torch
 
-from feature_sets import *
-
 dll = ctypes.cdll.LoadLibrary("C:\\Users\\patri\\Documents\\GitHub\\chess2024\\build\\Release\\data_loader.dll")
 
-# TrainingDataStream *create_stream(const char *path, float drop, size_t worker_id, size_t num_workers)
-create_stream = dll.create_stream
-create_stream.argtypes = [ctypes.c_char_p, ctypes.c_float, ctypes.c_size_t, ctypes.c_size_t]
-create_stream.restype = ctypes.c_void_p
-
-# void destroy_stream(TrainingDataStream *stream)
-destroy_stream = dll.destroy_stream
-destroy_stream.argtypes = [ctypes.c_void_p]
-
 # Basic Batch
+class BasicTrainingDataBatch(ctypes.Structure):
+    _fields_ = [
+        ('size', ctypes.c_size_t),
+        ('input', ctypes.POINTER(ctypes.c_float)),
+        ('score', ctypes.POINTER(ctypes.c_float)),
+    ]
 
-# BasicFeatureSetBatch *get_basic_batch(TrainingDataStream *stream, size_t size)
+    def get_tensors(self):
+        input = torch.from_numpy(np.ctypeslib.as_array(self.input, shape=(self.size, 12, 8, 8))).pin_memory()
+        score = torch.from_numpy(np.ctypeslib.as_array(self.score, shape=(self.size, 1))).pin_memory()
+        return input, torch.tanh(score / 800)
+    
+# DataLoader<BasicFeatureSetBatch> *create_basic_data_loader(const char *path, size_t batch_size, float drop, size_t num_workers) noexcept
+create_basic_data_loader = dll.create_basic_data_loader
+create_basic_data_loader.argtypes = [ctypes.c_char_p, ctypes.c_size_t, ctypes.c_float, ctypes.c_size_t]
+create_basic_data_loader.restype = ctypes.c_void_p
+
+# void destroy_basic_data_loader(DataLoader<BasicFeatureSetBatch> *data_loader) noexcept
+destroy_basic_data_loader = dll.destroy_basic_data_loader
+destroy_basic_data_loader.argtypes = [ctypes.c_void_p]
+
+# BasicFeatureSetBatch *get_basic_batch(DataLoader<BasicFeatureSetBatch> *data_loader) noexcept
 get_basic_batch = dll.get_basic_batch
-get_basic_batch.argtypes = [ctypes.c_void_p, ctypes.c_size_t]
-get_basic_batch.restype = BasicTrainingDataBatchPtr
+get_basic_batch.argtypes = [ctypes.c_void_p]
+get_basic_batch.restype = ctypes.POINTER(BasicTrainingDataBatch)
 
-# void destroy_basic_batch(BasicFeatureSetBatch *batch)
+# void destroy_basic_batch(BasicFeatureSetBatch *batch) noexcept
 destroy_basic_batch = dll.destroy_basic_batch
-destroy_basic_batch.argtypes = [BasicTrainingDataBatchPtr]
+destroy_basic_batch.argtypes = [ctypes.POINTER(BasicTrainingDataBatch)]
 
 class TrainingDataBatchDataset(torch.utils.data.IterableDataset):
-    def __init__(self, path: str, batch_size, drop=0, feature_set="basic"):
+    def __init__(self, path: str, batch_size, drop=0, num_workers=1, feature_set="basic"):
         super().__init__()
         self.path = ctypes.c_char_p(path.encode('utf-8'))
         self.batch_size = ctypes.c_size_t(batch_size)
         self.drop = ctypes.c_float(drop)
-        self.stream = None
+        self.num_workers = ctypes.c_size_t(num_workers)
+        self.data_loader = None
 
         match feature_set:
             case "basic":
+                self.create_data_loader = create_basic_data_loader
+                self.destroy_data_loader = destroy_basic_data_loader
                 self.get_batch = get_basic_batch
                 self.destroy_batch = destroy_basic_batch
             case _:
                 raise ValueError("Unsupported or unknown feature set!")
     
     def __iter__(self):
-        worker_info = torch.utils.data.get_worker_info()
-        if worker_info is None:
-            worker_id = ctypes.c_size_t(0)
-            num_workers = ctypes.c_size_t(0)
-        else:
-            worker_id = ctypes.c_size_t(worker_info.id)
-            num_workers = ctypes.c_size_t(worker_info.num_workers)
-
-        self.stream = create_stream(self.path, self.drop, worker_id, num_workers)
+        self.data_loader = create_basic_data_loader(self.path, self.batch_size, self.drop, self.num_workers)
         return self
     
     def __next__(self):
-        batch = self.get_batch(self.stream, self.batch_size)
+        batch = self.get_batch(self.data_loader)
         if not batch:
-            destroy_stream(self.stream)
-            self.stream = None
+            self.destroy_data_loader(self.data_loader)
+            self.data_loader = None
             raise StopIteration
 
         tensors = batch.contents.get_tensors()
@@ -65,6 +69,6 @@ class TrainingDataBatchDataset(torch.utils.data.IterableDataset):
         return tensors
     
     def __del__(self):
-        if self.stream is not None:
-            destroy_stream(self.stream)
-            self.stream = None
+        if self.data_loader is not None:
+            self.destroy_data_loader(self.data_loader)
+            self.data_loader = None

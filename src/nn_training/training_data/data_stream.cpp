@@ -3,6 +3,7 @@
 #include <cstring>
 #include <stdexcept>
 #include <bit>
+#include <random>
 #include <string>
 #include <iostream>
 #include <iomanip>
@@ -12,14 +13,26 @@
 
 #define ENTRY_SKIPPED 32002
 
-TrainingDataStream::TrainingDataStream(std::filesystem::path path, float drop, size_t worker_id, size_t num_workers) : 
-    path(path),
-    drop(drop),
-    worker_id(worker_id),
-    num_workers(num_workers) {}
+std::unique_ptr<TrainingDataStream> TrainingDataStream::create_stream(std::filesystem::path &path, float drop, size_t worker_id, size_t num_workers) noexcept
+{
+    try {
+        if (path.extension() == ".binpack") {
+            return std::make_unique<BinpackTrainingDataStream>(path, drop, worker_id, num_workers);
+        } else {
+            std::cout << "ERROR: unknown training data file type!" << std::endl;
+            return nullptr;
+        }
+    } catch (std::exception &e) {
+        std::cout << "ERROR: while creating stream: " << e.what() << std::endl;
+        return nullptr;
+    }
+}
 
 BinpackTrainingDataStream::BinpackTrainingDataStream(std::filesystem::path path, float drop, size_t worker_id, size_t num_workers, size_t buffer_size) :
-    TrainingDataStream(path, drop, worker_id, num_workers),
+    drop(drop),
+    worker_id(worker_id),
+    num_workers(num_workers),
+    path(path),
     file(path, std::ios::binary),
     buffer_size(buffer_size),
     block_num(0),
@@ -55,7 +68,7 @@ const TrainingDataEntry* BinpackTrainingDataStream::get_next_entry()
             // read next new position
             return nullptr;
         }
-    } while (entry.score == ENTRY_SKIPPED);
+    } while (entry.score == ENTRY_SKIPPED || bernoulli(drop));
 
     return &entry;
 }
@@ -71,7 +84,7 @@ bool BinpackTrainingDataStream::scan_file()
 
         try {
             block_size = read_block_header();
-        } catch (std::runtime_error &e) {
+        } catch (std::exception &e) {
             std::cout << "PROBLEM: " << e.what() << std::endl;
             file.seekg(0, std::ios::beg);
             return false;
@@ -549,4 +562,17 @@ uint32 BinpackTrainingDataStream::index_of_nth_set_bit(uint64 val, size_t n)
         throw new std::runtime_error("There must be at least n + 1 bits set!");
     }
     return std::countr_zero(val);
+}
+
+bool BinpackTrainingDataStream::bernoulli(float p)
+{
+    if (!p) {
+        return false;
+    }
+    static std::random_device rd;  // Non-deterministic random device
+    static std::mt19937 gen(rd()); // Mersenne Twister engine
+    std::uniform_real_distribution<> dis(0.0, 1.0);
+
+    // Generate a random number in [0, 1) and compare with p
+    return dis(gen) < p;
 }

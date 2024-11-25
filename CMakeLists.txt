@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Add the executables
 add_executable(engine)
 add_executable(demo)
+add_executable(test)
 
 # Source files for each target
 target_sources(engine PRIVATE
@@ -25,6 +26,15 @@ target_sources(demo PRIVATE
     src/graphical_board/graphical_board.cpp
     src/uci_engine/process_handler.cpp
     src/uci_engine/uci_engine.cpp
+)
+
+target_sources(test PRIVATE
+    src/board/board.cpp
+    src/movegen/movegen.cpp
+    src/nn_training/training_data/data_stream.cpp
+    src/nn_training/training_data/feature_sets.cpp
+    src/nn_training/training_data/data_loader.cpp
+    src/nn_training/training_data/test.cpp
 )
 
 add_library(data_loader SHARED

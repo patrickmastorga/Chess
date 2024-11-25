@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <vector>
 #include <fstream>
+#include <memory>
 
 struct TrainingDataEntry;
 class TrainingDataStream;
@@ -37,15 +38,11 @@ public:
     // attempts to fetch the next entry in the file
     // returns a pointer to the next entry
     // returns nullptr if there is no more data available
-    virtual const TrainingDataEntry* get_next_entry() = 0; 
+    virtual const TrainingDataEntry* get_next_entry() = 0;
 
-protected:
-    TrainingDataStream(std::filesystem::path path, float drop, size_t worker_id, size_t num_workers);
-
-    std::filesystem::path path;
-    float drop;
-    size_t worker_id;
-    size_t num_workers;
+    // returns the appropriate data stream for path type
+    // returns nullptr if unsuccessful
+    static std::unique_ptr<TrainingDataStream> create_stream(std::filesystem::path &path, float drop, size_t worker_id, size_t num_workers) noexcept;
 };
 
 /*
@@ -119,4 +116,6 @@ private:
     // returns the index of the nth set bit (starting from lsb) (0 indexed)
     // requires that at least n + 1 bits are set
     uint32 index_of_nth_set_bit(uint64 val, size_t n);
+
+    bool bernoulli(float p);
 };
