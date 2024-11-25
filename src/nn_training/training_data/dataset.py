@@ -2,7 +2,7 @@ import numpy as np
 import ctypes
 import torch
 
-dll = ctypes.cdll.LoadLibrary("C:\\Users\\patri\\Documents\\GitHub\\chess2024\\build\\Release\\data_loader.dll")
+dll = ctypes.cdll.LoadLibrary("/home/hice1/dkeskinyan3/astorga/chess2024/build/libdata_loader.so")
 
 # Basic Batch
 class BasicTrainingDataBatch(ctypes.Structure):
@@ -44,14 +44,13 @@ class TrainingDataBatchDataset(torch.utils.data.IterableDataset):
         self.num_workers = ctypes.c_size_t(num_workers)
         self.data_loader = None
 
-        match feature_set:
-            case "basic":
-                self.create_data_loader = create_basic_data_loader
-                self.destroy_data_loader = destroy_basic_data_loader
-                self.get_batch = get_basic_batch
-                self.destroy_batch = destroy_basic_batch
-            case _:
-                raise ValueError("Unsupported or unknown feature set!")
+        if feature_set != "basic":
+            raise ValueError("Unsupported or unknown feature set!")
+
+        self.create_data_loader = create_basic_data_loader
+        self.destroy_data_loader = destroy_basic_data_loader
+        self.get_batch = get_basic_batch
+        self.destroy_batch = destroy_basic_batch
     
     def __iter__(self):
         self.data_loader = create_basic_data_loader(self.path, self.batch_size, self.drop, self.num_workers)

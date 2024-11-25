@@ -44,14 +44,18 @@ extern "C" {
     
     // returns the appropriate data stream for path type
     // returns nullptr if unsuccessful
-    _declspec(dllexport) DataLoader<BasicFeatureSetBatch> *create_basic_data_loader(const char *path, size_t batch_size, float drop, size_t num_workers) noexcept;
+    //_declspec(dllexport) DataLoader<BasicFeatureSetBatch> *create_basic_data_loader(const char *path, size_t batch_size, float drop, size_t num_workers) noexcept;
+    DataLoader<BasicFeatureSetBatch> *create_basic_data_loader(const char *path, size_t batch_size, float drop, size_t num_workers) noexcept;
 
     // destroys the data stream
-    _declspec(dllexport) void destroy_basic_data_loader(DataLoader<BasicFeatureSetBatch> *data_loader) noexcept;
+    //_declspec(dllexport) void destroy_basic_data_loader(DataLoader<BasicFeatureSetBatch> *data_loader) noexcept;
+    void destroy_basic_data_loader(DataLoader<BasicFeatureSetBatch> *data_loader) noexcept;
 
     // constructs a basic batch with data from the training data stream
-    _declspec(dllexport) BasicFeatureSetBatch *get_basic_batch(DataLoader<BasicFeatureSetBatch> *data_loader) noexcept;
+    //_declspec(dllexport) BasicFeatureSetBatch *get_basic_batch(DataLoader<BasicFeatureSetBatch> *data_loader) noexcept;
+    BasicFeatureSetBatch *get_basic_batch(DataLoader<BasicFeatureSetBatch> *data_loader) noexcept;
 
     // destroys the batch
-    _declspec(dllexport) void destroy_basic_batch(BasicFeatureSetBatch *batch) noexcept;
+    //_declspec(dllexport) void destroy_basic_batch(BasicFeatureSetBatch *batch) noexcept;
+    void destroy_basic_batch(BasicFeatureSetBatch *batch) noexcept;
 }
